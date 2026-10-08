@@ -29,6 +29,7 @@ jobs:
           test -s GODSPIN-Source.zip || { echo 'GODSPIN-Source.zip dosyasini depo kokune yukleyin'; exit 1; }
           unzip -q GODSPIN-Source.zip -d build-src
           test -f build-src/godspin/project.godot
+          sed -i 's@https://godot-releases.nbg1.your-objectstorage.com/4.6.3-stable@https://github.com/godotengine/godot-builds/releases/download/4.6.3-stable@g' build-src/godspin/tools/bootstrap_android.sh
 
       - name: Java 21 kur
         uses: actions/setup-java@v4
@@ -42,7 +43,7 @@ jobs:
           set -euo pipefail
           TASK_DOWNLOAD_ROOT="$GODSPIN_TOOLCHAIN_ROOT/downloads"
           TASK_GODOT_ARCHIVE=Godot_v4.6.3-stable_linux.x86_64.zip
-          TASK_GODOT_BASE=https://godot-releases.nbg1.your-objectstorage.com/4.6.3-stable
+          TASK_GODOT_BASE=https://github.com/godotengine/godot-builds/releases/download/4.6.3-stable
           mkdir -p "$TASK_DOWNLOAD_ROOT" "$GODSPIN_TOOLCHAIN_ROOT/godot"
           curl --fail --location --connect-timeout 12 --max-time 120             "$TASK_GODOT_BASE/SHA512-SUMS.txt"             --output "$TASK_DOWNLOAD_ROOT/Godot-4.6.3-SHA512-SUMS.txt"
           curl --fail --location --connect-timeout 12 --max-time 300             "$TASK_GODOT_BASE/$TASK_GODOT_ARCHIVE"             --output "$TASK_DOWNLOAD_ROOT/$TASK_GODOT_ARCHIVE"
