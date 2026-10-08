@@ -1,0 +1,78 @@
+name: GODSPIN APK Derle
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'GODSPIN-Source.zip'
+      - '.github/workflows/build-apk.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      GODSPIN_TOOLCHAIN_ROOT: ${{ runner.temp }}/godspin-toolchain
+      ANDROID_SDK_ROOT: ${{ runner.temp }}/godspin-toolchain/android-sdk
+      GODSPIN_ACCEPT_ANDROID_SDK_LICENSE: "1"
+    steps:
+      - name: Kaynak kodu al
+        uses: actions/checkout@v4
+
+      - name: ZIP dosyasini ac
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s GODSPIN-Source.zip || { echo 'GODSPIN-Source.zip dosyasini depo kokune yukleyin'; exit 1; }
+          unzip -q GODSPIN-Source.zip -d build-src
+          test -f build-src/godspin/project.godot
+
+      - name: Java 21 kur
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Resmi Godot 4.6.3 editorunu dogrula
+        shell: bash
+        run: |
+          set -euo pipefail
+          TASK_DOWNLOAD_ROOT="$GODSPIN_TOOLCHAIN_ROOT/downloads"
+          TASK_GODOT_ARCHIVE=Godot_v4.6.3-stable_linux.x86_64.zip
+          TASK_GODOT_BASE=https://godot-releases.nbg1.your-objectstorage.com/4.6.3-stable
+          mkdir -p "$TASK_DOWNLOAD_ROOT" "$GODSPIN_TOOLCHAIN_ROOT/godot"
+          curl --fail --location --connect-timeout 12 --max-time 120             "$TASK_GODOT_BASE/SHA512-SUMS.txt"             --output "$TASK_DOWNLOAD_ROOT/Godot-4.6.3-SHA512-SUMS.txt"
+          curl --fail --location --connect-timeout 12 --max-time 300             "$TASK_GODOT_BASE/$TASK_GODOT_ARCHIVE"             --output "$TASK_DOWNLOAD_ROOT/$TASK_GODOT_ARCHIVE"
+          python3 - "$TASK_DOWNLOAD_ROOT/$TASK_GODOT_ARCHIVE" "$TASK_DOWNLOAD_ROOT/Godot-4.6.3-SHA512-SUMS.txt" <<'PY'
+          import hashlib, pathlib, sys
+          archive, sums = map(pathlib.Path, sys.argv[1:])
+          matches = [line.split()[0] for line in sums.read_text().splitlines()
+                     if len(line.split()) == 2 and line.split()[1].lstrip('*') == archive.name]
+          if len(matches) != 1 or len(matches[0]) != 128:
+              raise SystemExit('Official Godot SHA-512 not found')
+          if hashlib.file_digest(archive.open('rb'), 'sha512').hexdigest() != matches[0]:
+              raise SystemExit('Godot SHA-512 mismatch')
+          PY
+          unzip -q "$TASK_DOWNLOAD_ROOT/$TASK_GODOT_ARCHIVE" -d "$GODSPIN_TOOLCHAIN_ROOT/godot"
+          chmod +x "$GODSPIN_TOOLCHAIN_ROOT/godot/Godot_v4.6.3-stable_linux.x86_64"
+          echo "GODOT_BIN=$GODSPIN_TOOLCHAIN_ROOT/godot/Godot_v4.6.3-stable_linux.x86_64" >> "$GITHUB_ENV"
+
+      - name: Android araclarini kur ve APK derle
+        shell: bash
+        working-directory: build-src/godspin
+        run: |
+          bash tools/bootstrap_android.sh
+          bash tools/build_android.sh
+
+      - name: APK dosyasini paylas
+        uses: actions/upload-artifact@v4
+        with:
+          name: GODSPIN-Android-APK
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            build-src/godspin/dist/GODSPIN.apk
+            build-src/godspin/dist/GODSPIN-EmpireOfFortune.apk
