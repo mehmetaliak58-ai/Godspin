@@ -15,8 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
-      GODSPIN_TOOLCHAIN_ROOT: ${{ runner.temp }}/godspin-toolchain
-      ANDROID_SDK_ROOT: ${{ runner.temp }}/godspin-toolchain/android-sdk
+      GODSPIN_TOOLCHAIN_ROOT: /tmp/godspin-toolchain
+      ANDROID_SDK_ROOT: /tmp/godspin-toolchain/android-sdk
       GODSPIN_ACCEPT_ANDROID_SDK_LICENSE: "1"
     steps:
       - name: Kaynak kodu al
