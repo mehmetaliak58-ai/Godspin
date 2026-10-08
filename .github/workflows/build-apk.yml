@@ -29,6 +29,8 @@ jobs:
           test -s GODSPIN-Source.zip || { echo 'GODSPIN-Source.zip dosyasini depo kokune yukleyin'; exit 1; }
           unzip -q GODSPIN-Source.zip -d build-src
           test -f build-src/godspin/project.godot
+          # Godot 4.6.3 requires ETC2/ASTC import enabled for headless Android export on x86_64
+          sed -i '/^\[rendering\]$/a textures/vram_compression/import_etc2_astc=true' build-src/godspin/project.godot
           sed -i 's@https://godot-releases.nbg1.your-objectstorage.com/4.6.3-stable@https://github.com/godotengine/godot-builds/releases/download/4.6.3-stable@g' build-src/godspin/tools/bootstrap_android.sh
 
       - name: Java 21 kur
