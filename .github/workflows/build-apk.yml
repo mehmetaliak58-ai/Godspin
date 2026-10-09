@@ -111,6 +111,17 @@ jobs:
           GODSPIN_TEST_DIR="$RUNNER_TEMP/godspin-v3-test" "$GODOT_BIN" --headless --path . --script res://tests/test_v3.gd | tee "$RUNNER_TEMP/v3-test.log"
           grep -q '0 failures' "$RUNNER_TEMP/v3-test.log"
 
+      - name: V3 mobil arayuz ve efekt testleri
+        shell: bash
+        working-directory: build-src/godspin
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/godspin-v3-ui"
+          GODSPIN_TEST_DIR="$RUNNER_TEMP/godspin-v3-ui" "$GODOT_BIN" --headless --path . --script res://tests/test_ui_layout.gd | tee "$RUNNER_TEMP/v3-layout.log"
+          grep -q '0 failures' "$RUNNER_TEMP/v3-layout.log"
+          "$GODOT_BIN" --headless --path . --script res://tests/test_vfx_upgrade.gd | tee "$RUNNER_TEMP/v3-vfx.log"
+          grep -q 'VFX_UPGRADE_PASS' "$RUNNER_TEMP/v3-vfx.log"
+
       - name: APK dosyasini paylas
         if: always()
         uses: actions/upload-artifact@v4
