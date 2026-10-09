@@ -5,6 +5,7 @@ on:
   push:
     paths:
       - 'GODSPIN-Source.zip'
+      - 'v3-upgrade.b64'
       - '.github/workflows/build-apk.yml'
 
 permissions:
@@ -29,6 +30,9 @@ jobs:
           test -s GODSPIN-Source.zip || { echo 'GODSPIN-Source.zip dosyasini depo kokune yukleyin'; exit 1; }
           unzip -q GODSPIN-Source.zip -d build-src
           test -f build-src/godspin/project.godot
+          test -s v3-upgrade.b64 || { echo 'V3 source overlay missing'; exit 1; }
+          base64 --decode v3-upgrade.b64 | tar -xz -C build-src/godspin
+          test -f build-src/godspin/tests/test_v3.gd
           # Godot 4.6.3 requires ETC2/ASTC import enabled for headless Android export on x86_64
           sed -i '/^\[rendering\]$/a textures/vram_compression/import_etc2_astc=true' build-src/godspin/project.godot
           # aapt badging omits LAUNCHER activity aliases used by Godot 4.6.3
@@ -45,6 +49,17 @@ jobs:
           path.write_text(source.replace(old, new))
           PY
           sed -i 's@https://godot-releases.nbg1.your-objectstorage.com/4.6.3-stable@https://github.com/godotengine/godot-builds/releases/download/4.6.3-stable@g' build-src/godspin/tools/bootstrap_android.sh
+
+      - name: Python sanat paketlerini kur
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: V3 karakter ve salon sanatini olustur
+        shell: bash
+        run: |
+          python -m pip install pillow==11.3.0
+          python build-src/godspin/tools/make_v3_art.py
 
       - name: Java 21 kur
         uses: actions/setup-java@v4
@@ -87,6 +102,14 @@ jobs:
             "$ANDROID_SDK_ROOT/build-tools/35.0.1/aapt" dump xmltree dist/GODSPIN-EmpireOfFortune.apk AndroidManifest.xml | head -200 || true
             exit 1
           fi
+
+      - name: V3 sanal cip ve karakter sistemi testleri
+        shell: bash
+        working-directory: build-src/godspin
+        run: |
+          mkdir -p "$RUNNER_TEMP/godspin-v3-test"
+          GODSPIN_TEST_DIR="$RUNNER_TEMP/godspin-v3-test" "$GODOT_BIN" --headless --path . --script res://tests/test_v3.gd | tee "$RUNNER_TEMP/v3-test.log"
+          grep -q '0 failures' "$RUNNER_TEMP/v3-test.log"
 
       - name: APK dosyasini paylas
         if: always()
