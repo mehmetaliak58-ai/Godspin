@@ -122,6 +122,16 @@ jobs:
           "$GODOT_BIN" --headless --path . --script res://tests/test_vfx_upgrade.gd | tee "$RUNNER_TEMP/v3-vfx.log"
           grep -q 'VFX_UPGRADE_PASS' "$RUNNER_TEMP/v3-vfx.log"
 
+      - name: Kayitlari koruyan ayri uygulama paketi
+        shell: bash
+        working-directory: build-src/godspin
+        run: |
+          set -euo pipefail
+          sed -i 's@package/unique_name="com.godspin.empireoffortune"@package/unique_name="com.godspin.empireoffortune.v3"@' export_presets.cfg
+          sed -i 's@package/name="GODSPIN: EMPIRE OF FORTUNE"@package/name="GODSPIN V3 - EFSANELER"@' export_presets.cfg
+          sed -i 's@com.godspin.empireoffortune@com.godspin.empireoffortune.v3@g' tools/verify_android.py
+          GODSPIN_APK_PATH="$PWD/dist/GODSPIN-V3-YanYana.apk" bash tools/build_android.sh
+
       - name: APK dosyasini paylas
         if: always()
         uses: actions/upload-artifact@v4
@@ -131,4 +141,5 @@ jobs:
           retention-days: 14
           path: |
             build-src/godspin/dist/GODSPIN.apk
+            build-src/godspin/dist/GODSPIN-V3-YanYana.apk
             build-src/godspin/dist/GODSPIN-EmpireOfFortune.apk
